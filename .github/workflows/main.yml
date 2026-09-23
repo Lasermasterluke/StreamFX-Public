@@ -19,10 +19,28 @@ jobs:
     name: "Windows (MSVC)"
     steps:
     - name: "Clone"
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
-        submodules: recursive
+        submodules: false
         fetch-depth: 0
+
+    - name: "Clone submodules"
+      shell: bash
+      run: |
+        # NVIDIA moved the Maxine SDKs to github.com/NVIDIA-Maxine and rewrote their
+        # history, so the commits StreamFX pins no longer exist. Skip them here and
+        # fetch the current versions instead (StreamFX only needs their folders; it
+        # ships its own definitions and loads the NVIDIA runtime at startup).
+        git \
+          -c submodule.third-party/nvidia-maxine-afx-sdk.update=none \
+          -c submodule.third-party/nvidia-maxine-ar-sdk.update=none \
+          -c submodule.third-party/nvidia-maxine-vfx-sdk.update=none \
+          submodule update --init --recursive
+        for s in AFX AR VFX; do
+          dir="third-party/nvidia-maxine-${s,,}-sdk"
+          rm -rf "$dir"
+          git clone --depth 1 "https://github.com/NVIDIA-Maxine/MAXINE-${s}-SDK.git" "$dir"
+        done
 
     - name: "Gather Information"
       shell: bash
