@@ -64,6 +64,9 @@ jobs:
         curl --retry 5 --retry-delay 30 -jLo /tmp/obsdeps.zip "${{ env.obs_deps_url }}"
         mkdir -p "${{ github.workspace }}/build/obsdeps"
         7z x -y -o"${{ github.workspace }}/build/obsdeps" -- "/tmp/obsdeps.zip"
+        # The deps package ships a MinGW-built zlib (libz.a) next to the MSVC one (zlib.lib).
+        # Newer CMake picks libz.a first, which MSVC cannot link. Remove it so zlib.lib is used.
+        rm -f "${{ github.workspace }}/build/obsdeps/lib/libz.a" "${{ github.workspace }}/build/obsdeps/lib/libz.dll.a"
 
     - name: "Dependency: OBS Libraries"
       shell: bash
@@ -82,6 +85,8 @@ jobs:
           -DCMAKE_SYSTEM_VERSION="${{ env.CMAKE_SYSTEM_VERSION }}" \
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/build/obs/install" \
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}/build/obsdeps;${{ github.workspace }}/build/qt" \
+          -DZLIB_LIBRARY="${{ github.workspace }}/build/obsdeps/lib/zlib.lib" \
+          -DZLIB_INCLUDE_DIR="${{ github.workspace }}/build/obsdeps/include" \
           -DENABLE_PLUGINS=OFF \
           -DENABLE_UI=OFF \
           -DENABLE_SCRIPTING=OFF
